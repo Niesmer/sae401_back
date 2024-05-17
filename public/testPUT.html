@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<button type="button" onclick="test()">Send</button>
+<h1>json</h1>
+<div id="json">
+</div>
+<h1>response</h1>
+<div id="response">
+</div>
+<script>
+    async function test() { // fonction asynchrone
+        let json = JSON.stringify({
+            prix: 18.95
+        });
+        document.getElementById("json").innerHTML = json;
+        let response = await fetch("http://localhost:8000/wp-json/wc/v3/products/166727100044", {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json'
+            },
+            body: json
+        });
+        if (response.status == 201) {
+            if (response.headers.get("Content-Location")) {
+                document.getElementById("response").innerHTML = await response.text(); // attendre la résolution d'une
+                promesse
+            }
+            else {
+                document.getElementById("response").innerHTML = "Error, no \"Content-Location\" in response headers";
+            }
+        }
+        else {
+            document.getElementById("response").innerHTML = "Error code " + response.status;
+        }
+    }
+</script>
