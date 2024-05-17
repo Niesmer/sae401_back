@@ -1,0 +1,13 @@
+{ 													
+	"folders": [										
+		{										        
+			"path": "."									
+	    }								                
+	],                                                  
+	"settings": {	                                    
+	    "intelephense.environment.includePaths": [	    
+	      	"C:\\Users\\antoi\\symfony\\vendor"       
+	    ],                                       	    
+	    "php.suggest.basic": false,                     
+	}            	                                    
+}              	                                    

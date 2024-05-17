@@ -1,0 +1,15 @@
+# behat.yml
+default:
+    extensions:
+        Behat\MinkExtension:
+            browser_name: 'firefox'
+            base_url: https://en.wikipedia.org
+            goutte: null
+            selenium2:
+                capabilities:
+                    marionette: true   
+                    proxy:
+                        proxyType: 'autodetect'
+    suites:
+        default:
+            contexts: [FeatureContext, ApiFeatureContext]
