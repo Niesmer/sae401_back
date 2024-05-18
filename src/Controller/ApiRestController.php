@@ -15,6 +15,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Catalogue\Livre;
 use App\Entity\Catalogue\Musique;
 use App\Entity\Catalogue\Piste;
+use App\Entity\Catalogue\Article;
 
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -23,16 +24,20 @@ use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 
 use Doctrine\DBAL\Exception\ConstraintViolationException;
+use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
+use Symfony\Component\Serializer\SerializerInterface;
 
 class ApiRestController extends AbstractController
 {
 	private $entityManager;
+	private $serializer;
 	private $logger;
 
-	public function __construct(EntityManagerInterface $entityManager, LoggerInterface $logger)
+	public function __construct(EntityManagerInterface $entityManager, LoggerInterface $logger, SerializerInterface $serializer)
 	{
 		$this->entityManager = $entityManager;
 		$this->logger = $logger;
+		$this->serializer = $serializer;
 	}
 
 	#[Route('/wp-json/wc/v3/products', name: 'list-all-products', methods: ['GET'])]
@@ -49,6 +54,7 @@ class ApiRestController extends AbstractController
 	}
 
 	#[Route('/wp-json/wc/v3/products', name: 'allow-create-a-product', methods: ['OPTIONS'])]
+	#[Route('/wp-json/wc/v3/products/{id}', name: 'allow-retrieve-a-product', methods: ['OPTIONS'])]
 	public function allowCreateAProduct(Request $request): Response
 	{
 		$response = new Response();
@@ -215,17 +221,89 @@ class ApiRestController extends AbstractController
 		$data = json_decode($request->getContent(), true);
 		$query = $this->entityManager->createQuery("SELECT a FROM App\Entity\Catalogue\Article a where a.id like :id");
 		$query->setParameter("id", $id);
-		$article = $query->getArrayResult();
-		$article = $article[0];
-		if (isset($article)) {
+		$articles = $query->getArrayResult();
+		if (isset($articles)) {
+			$article = $articles[0];
 			if ($article["article_type"] == "musique") {
-				$entity = new Musique();
-				$formBuilder = $this->createFormBuilder($entity, array('csrf_protection' => false));
-				$formBuilder->add("id", TextType::class);
-				$formBuilder->add("titre", TextType::class);
-				$formBuilder->add("artiste", TextType::class);
-				$formBuilder->add("prix", NumberType::class);
-				$formBuilder->add("disponibilite", IntegerType::class);
-				$formBuilder->add("image", TextType::class);
+				$formBuilder = $this->createFormBuilder($article, array('csrf_protection' => false));
+				$formBuilder->add("id", IntegerType::class);
+				$formBuilder->add("article_type", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("titre", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("artiste", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("prix", NumberType::class, ['empty_data' => 0]);
+				$formBuilder->add("disponibilite", IntegerType::class, ['empty_data' => 0]);
+				$formBuilder->add("image", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("dateDeParution", TextType::class, ['empty_data' => '']);
+				$form = $formBuilder->getForm();
+				$updatedArticleData = array_merge($article, array_filter($data, function ($value) {
+					return $value !== null;
+				}));
+				$form->submit(
+					$updatedArticleData
+				);
+				if ($form->isSubmitted()) {
+					$article = $form->getData();
+					$entity = $this->entityManager->getRepository(Article::class)->find($id);;
+					$this->serializer->deserialize(json_encode($article), Musique::class, 'json', [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $entity]);
+					$this->entityManager->persist($entity);
+					$this->entityManager->flush();
+					$query = $this->entityManager->createQuery("SELECT a FROM App\Entity\Catalogue\Article a where a.id like :id");
+					$query->setParameter("id", $id);
+					$article = $query->getArrayResult();
+					$response = new Response();
+					$response->setStatusCode(Response::HTTP_OK); // 200
+					$response->setContent(json_encode($article));
+					$response->headers->set('Content-Type', 'application/json');
+					$response->headers->set('Content-Location', '/wp-json/wc/v3/products/' . $id);
+					$response->headers->set('Access-Control-Allow-Origin', '*');
+					return $response;
+				}
+			}
+			if ($article["article_type"] == "livre") {
+				$formBuilder = $this->createFormBuilder($article, array('csrf_protection' => false));
+				$formBuilder->add("id", IntegerType::class);
+				$formBuilder->add("article_type", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("titre", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("auteur", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("prix", NumberType::class, ['empty_data' => 0]);
+				$formBuilder->add("disponibilite", IntegerType::class, ['empty_data' => 0]);
+				$formBuilder->add("image", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("ISBN", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("nbPages", IntegerType::class, ['empty_data' => 0]);
+				$formBuilder->add("dateDeParution", TextType::class, ['empty_data' => '']);
+				$form = $formBuilder->getForm();
+				$updatedArticleData = array_merge($article, array_filter($data, function ($value) {
+					return $value !== null;
+				}));
+				$form->submit(
+					$updatedArticleData
+				);
+				if ($form->isSubmitted()) {
+					$article = $form->getData();
+					$entity = $this->entityManager->getRepository(Article::class)->find($id);;
+					$this->serializer->deserialize(json_encode($article), Livre::class, 'json', [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $entity]);
+					$this->entityManager->persist($entity);
+					$this->entityManager->flush();
+					$query = $this->entityManager->createQuery("SELECT a FROM App\Entity\Catalogue\Article a where a.id like :id");
+					$query->setParameter("id", $id);
+					$article = $query->getArrayResult();
+					$response = new Response();
+					$response->setStatusCode(Response::HTTP_OK); // 200
+					$response->setContent(json_encode($article));
+					$response->headers->set('Content-Type', 'application/json');
+					$response->headers->set('Content-Location', '/wp-json/wc/v3/products/' . $id);
+					$response->headers->set('Access-Control-Allow-Origin', '*');
+					return $response;
+				} else {
+				}
+			}
+		} else {
+			$response = new Response();
+			$response->setStatusCode(Response::HTTP_NOT_FOUND); // 404
+			$response->setContent(json_encode(array('message' => 'Resource not found: No article found for id ' . $id)));
+			$response->headers->set('Content-Type', 'application/json');
+			$response->headers->set('Access-Control-Allow-Origin', '*');
+			return $response;
+		}
 	}
 }

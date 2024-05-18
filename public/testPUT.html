@@ -19,7 +19,7 @@
             },
             body: json
         });
-        if (response.status == 201) {
+        if (response.status == 200) {
             if (response.headers.get("Content-Location")) {
                 document.getElementById("response").innerHTML = await response.text(); // attendre la résolution d'une
                 promesse

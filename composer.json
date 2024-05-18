@@ -52,7 +52,8 @@
         },
         "sort-packages": true,
         "cache-dir": "C:/Users/antoi/symfony/cache",
-        "vendor-dir": "C:/Users/antoi/symfony/vendor"
+        "vendor-dir": "C:/Users/antoi/symfony/vendor",
+        "bin-dir": "C:/Users/antoi/symfony/bin"
     },
     "autoload": {
         "psr-0": {
