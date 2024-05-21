@@ -213,31 +213,4 @@ class ApiRestController extends AbstractController
 			return $response ;
 		}
     }
-	#[Route('/wp-json/wc/v3/products/{id}', name: 'delete-a-product', methods: ['DELETE'])]
-    public function deleteAProduct(string $id): Response
-    {
-		$query = $this->entityManager->createQuery("SELECT a FROM App\Entity\Catalogue\Article a where a.id like :id");
-		$query->setParameter("id", $id) ;
-
-		$articles = $query->getArrayResult();
-		$article=$articles[0];
-
-		if (count($article) !== 0) {
-			$this->entityManager->remove($article);
-			$this->entityManager->flush();
-			$response = new Response() ;
-			$response->setStatusCode(Response::HTTP_NO_CONTENT); // 204 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-			$response->headers->set('Content-Type', 'application/json');
-			$response->headers->set('Access-Control-Allow-Origin', '*');
-			return $response ;
-		}
-		else {
-			$response = new Response() ;
-			$response->setStatusCode(Response::HTTP_NOT_FOUND); // 404 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-			$response->setContent(json_encode(array('message' => 'Resource not found: No article found for id '.$id))) ;
-			$response->headers->set('Content-Type', 'application/json');
-			$response->headers->set('Access-Control-Allow-Origin', '*');
-			return $response ;
-		}
-    }
 }
