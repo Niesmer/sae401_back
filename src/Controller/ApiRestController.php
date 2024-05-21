@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use App\Entity\Catalogue\Article;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -220,10 +219,11 @@ class ApiRestController extends AbstractController
 		$query = $this->entityManager->createQuery("SELECT a FROM App\Entity\Catalogue\Article a where a.id like :id");
 		$query->setParameter("id", $id) ;
 
-		$articleObj = $this->entityManager->getRepository(Article::class)->find($id);
+		$articles = $query->getArrayResult();
+		$article=$articles[0];
 
-		if (isset($articleObj)) {
-			$this->entityManager->remove($articleObj);
+		if (count($article) !== 0) {
+			$this->entityManager->remove($article);
 			$this->entityManager->flush();
 			$response = new Response() ;
 			$response->setStatusCode(Response::HTTP_NO_CONTENT); // 204 https://github.com/symfony/http-foundation/blob/5.4/Response.php
