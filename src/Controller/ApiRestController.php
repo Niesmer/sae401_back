@@ -243,7 +243,7 @@ class ApiRestController extends AbstractController
 				);
 				if ($form->isSubmitted()) {
 					$article = $form->getData();
-					$entity = $this->entityManager->getRepository(Article::class)->find($id);;
+					$entity = $this->entityManager->getRepository(Musique::class)->find($id);;
 					$this->serializer->deserialize(json_encode($article), Musique::class, 'json', [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $entity]);
 					$this->entityManager->persist($entity);
 					$this->entityManager->flush();
@@ -280,7 +280,7 @@ class ApiRestController extends AbstractController
 				);
 				if ($form->isSubmitted()) {
 					$article = $form->getData();
-					$entity = $this->entityManager->getRepository(Article::class)->find($id);;
+					$entity = $this->entityManager->getRepository(Livre::class)->find($id);;
 					$this->serializer->deserialize(json_encode($article), Livre::class, 'json', [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $entity]);
 					$this->entityManager->persist($entity);
 					$this->entityManager->flush();
