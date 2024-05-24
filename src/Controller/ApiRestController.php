@@ -216,6 +216,7 @@ class ApiRestController extends AbstractController
 	}
 
 	#[Route('/wp-json/wc/v3/products/{id}', name: 'replace-a-product', methods: ['PUT'])]
+	#[Route('/wp-json/wc/v3/products/{id}', name: 'replace-a-product', methods: ['PATCH'])]
 	public function replaceAProduct(string $id, Request $request): Response
 	{
 		$data = json_decode($request->getContent(), true);
