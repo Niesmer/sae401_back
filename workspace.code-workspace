@@ -6,7 +6,7 @@
 	],                                                  
 	"settings": {	                                    
 	    "intelephense.environment.includePaths": [	    
-	      	"C:\\Users\\antoi\\symfony\\vendor"       
+	      	"C:\\Users\\Ma‰lig\\symfony\\vendor"       
 	    ],                                       	    
 	    "php.suggest.basic": false,                     
 	}            	                                    
