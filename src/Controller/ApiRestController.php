@@ -236,7 +236,7 @@ class ApiRestController extends AbstractController
 		else {
 			$response = new Response() ;
 			return $response;
-		} else {
+		
 			$response = new Response();
 			$response->setStatusCode(Response::HTTP_NOT_FOUND); // 404 https://github.com/symfony/http-foundation/blob/5.4/Response.php
 			$response->setContent(json_encode(array('message' => 'Resource not found: No article found for id ' . $id)));
