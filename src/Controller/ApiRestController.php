@@ -204,38 +204,36 @@ class ApiRestController extends AbstractController
 			$response->setContent(json_encode($article));
 			$response->headers->set('Content-Type', 'application/json');
 			$response->headers->set('Access-Control-Allow-Origin', '*');
-			return $response ;
-		}
-		else {
-			$response = new Response() ;
+			return $response;
+		} else {
+			$response = new Response();
 			$response->setStatusCode(Response::HTTP_NOT_FOUND); // 404 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-			$response->setContent(json_encode(array('message' => 'Resource not found: No article found for id '.$id))) ;
+			$response->setContent(json_encode(array('message' => 'Resource not found: No article found for id ' . $id)));
 			$response->headers->set('Content-Type', 'application/json');
 			$response->headers->set('Access-Control-Allow-Origin', '*');
-			return $response ;
+			return $response;
 		}
-    }
+	}
 	#[Route('/wp-json/wc/v3/products/{id}', name: 'delete-a-product', methods: ['DELETE'])]
-    public function deleteAProduct(string $id): Response
-    {
+	public function deleteAProduct(string $id): Response
+	{
 		$query = $this->entityManager->createQuery("SELECT a FROM App\Entity\Catalogue\Article a where a.id like :id");
-		$query->setParameter("id", $id) ;
+		$query->setParameter("id", $id);
 
 		$articleObj = $this->entityManager->getRepository(Article::class)->find($id);
 
 		if (isset($articleObj)) {
 			$this->entityManager->remove($articleObj);
 			$this->entityManager->flush();
-			$response = new Response() ;
+			$response = new Response();
 			$response->setStatusCode(Response::HTTP_NO_CONTENT); // 204 https://github.com/symfony/http-foundation/blob/5.4/Response.php
 			$response->headers->set('Content-Type', 'application/json');
 			$response->headers->set('Access-Control-Allow-Origin', '*');
-			return $response ;
-		}
-		else {
-			$response = new Response() ;
 			return $response;
-		
+		} else {
+			$response = new Response();
+			return $response;
+
 			$response = new Response();
 			$response->setStatusCode(Response::HTTP_NOT_FOUND); // 404 https://github.com/symfony/http-foundation/blob/5.4/Response.php
 			$response->setContent(json_encode(array('message' => 'Resource not found: No article found for id ' . $id)));
@@ -274,7 +272,8 @@ class ApiRestController extends AbstractController
 				);
 				if ($form->isSubmitted()) {
 					$article = $form->getData();
-					$entity = $this->entityManager->getRepository(Musique::class)->find($id);;
+					$entity = $this->entityManager->getRepository(Musique::class)->find($id);
+					;
 					$this->serializer->deserialize(json_encode($article), Musique::class, 'json', [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $entity]);
 					$this->entityManager->persist($entity);
 					$this->entityManager->flush();
@@ -289,8 +288,7 @@ class ApiRestController extends AbstractController
 					$response->headers->set('Access-Control-Allow-Origin', '*');
 					return $response;
 				}
-			}
-			if ($article["article_type"] == "livre") {
+			} elseif ($article["article_type"] == "livre") {
 				$formBuilder = $this->createFormBuilder($article, array('csrf_protection' => false));
 				$formBuilder->add("id", IntegerType::class);
 				$formBuilder->add("article_type", TextType::class, ['empty_data' => '']);
@@ -311,7 +309,8 @@ class ApiRestController extends AbstractController
 				);
 				if ($form->isSubmitted()) {
 					$article = $form->getData();
-					$entity = $this->entityManager->getRepository(Livre::class)->find($id);;
+					$entity = $this->entityManager->getRepository(Livre::class)->find($id);
+					;
 					$this->serializer->deserialize(json_encode($article), Livre::class, 'json', [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $entity]);
 					$this->entityManager->persist($entity);
 					$this->entityManager->flush();
@@ -327,6 +326,13 @@ class ApiRestController extends AbstractController
 					return $response;
 				} else {
 				}
+			} else {
+				$response = new Response;
+				$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
+				$response->setContent(json_encode(array('message' => 'Entity not processable' . $article["article_type"])));
+				$response->headers->set('Content-Type', 'application/json');
+				$response->headers->set('Access-Control-Allow-Origin', '*');
+				return $response;
 			}
 		} else {
 			$response = new Response();
