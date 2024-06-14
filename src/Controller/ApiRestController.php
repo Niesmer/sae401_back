@@ -59,7 +59,7 @@ class ApiRestController extends AbstractController
 	{
 		$response = new Response();
 		$response->setStatusCode(Response::HTTP_OK); // 200 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-		$response->headers->set('Access-Control-Allow-Origin', '*');
+		$response->headers->set('Access-Control-Allow-Origin', "http://localhost:3000");
 		$response->headers->set('Access-Control-Allow-Methods', $request->headers->get('Access-Control-Request-Method'));
 		$response->headers->set('Access-Control-Allow-Headers', $request->headers->get('Access-Control-Request-Headers'));
 		return $response;
@@ -243,8 +243,7 @@ class ApiRestController extends AbstractController
 		}
 	}
 
-	#[Route('/wp-json/wc/v3/products/{id}', name: 'replace-a-product', methods: ['PUT'])]
-	#[Route('/wp-json/wc/v3/products/{id}', name: 'replace-a-product', methods: ['PATCH'])]
+	#[Route('/wp-json/wc/v3/products/{id}', name: 'replace-a-product', methods: ['PUT','PATCH'])]
 	public function replaceAProduct(string $id, Request $request): Response
 	{
 		$data = json_decode($request->getContent(), true);
@@ -264,16 +263,12 @@ class ApiRestController extends AbstractController
 				$formBuilder->add("image", TextType::class, ['empty_data' => '']);
 				$formBuilder->add("dateDeParution", TextType::class, ['empty_data' => '']);
 				$form = $formBuilder->getForm();
-				$updatedArticleData = array_merge($article, array_filter($data, function ($value) {
-					return $value !== null;
-				}));
 				$form->submit(
-					$updatedArticleData
+					$data
 				);
-				if ($form->isSubmitted()) {
+				if ($form->isSubmitted() && $form->isValid()) {
 					$article = $form->getData();
 					$entity = $this->entityManager->getRepository(Musique::class)->find($id);
-					;
 					$this->serializer->deserialize(json_encode($article), Musique::class, 'json', [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $entity]);
 					$this->entityManager->persist($entity);
 					$this->entityManager->flush();
@@ -285,6 +280,14 @@ class ApiRestController extends AbstractController
 					$response->setContent(json_encode($article));
 					$response->headers->set('Content-Type', 'application/json');
 					$response->headers->set('Content-Location', '/wp-json/wc/v3/products/' . $id);
+					$response->headers->set('Access-Control-Allow-Origin', '*');
+					return $response;
+				} else {
+					$errors = $form->getErrors(true);
+					$response = new Response;
+					$response->setStatusCode(Response::HTTP_BAD_REQUEST);//400
+					$response->setContent(json_encode(array('message' => 'Invalid input', 'errors' => $errors->1())));
+					$response->headers->set('Content-Type', 'application/json');
 					$response->headers->set('Access-Control-Allow-Origin', '*');
 					return $response;
 				}
@@ -328,7 +331,7 @@ class ApiRestController extends AbstractController
 				}
 			} else {
 				$response = new Response;
-				$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
+				$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);//422
 				$response->setContent(json_encode(array('message' => 'Entity not processable' . $article["article_type"])));
 				$response->headers->set('Content-Type', 'application/json');
 				$response->headers->set('Access-Control-Allow-Origin', '*');

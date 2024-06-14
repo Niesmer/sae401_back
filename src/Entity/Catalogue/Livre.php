@@ -3,6 +3,7 @@
 namespace App\Entity\Catalogue;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 class Livre extends Article
@@ -13,6 +14,7 @@ class Livre extends Article
     #[ORM\Column(length: 255, name: 'isbn')]
     private ?string $ISBN = null;
 
+    #[Assert\PositiveOrZero]
     #[ORM\Column(name: 'nb_pages')]
     private ?int $nbPages = null;
 

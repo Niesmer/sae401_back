@@ -3,6 +3,7 @@
 namespace App\Entity\Catalogue;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\InheritanceType("SINGLE_TABLE")]
@@ -18,9 +19,11 @@ class Article
     #[ORM\Column(length: 255, name: 'titre')]
     private ?string $titre = null;
 
+    #[Assert\PositiveOrZero]
     #[ORM\Column(name: 'prix')]
     private ?float $prix = null;
 
+    #[Assert\PositiveOrZero (message: 'La disponibilité doit être un nombre positif ou 0')]
     #[ORM\Column(name: 'disponibilite')]
     private ?int $disponibilite = null;
 	
