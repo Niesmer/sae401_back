@@ -8,13 +8,16 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 class Livre extends Article
 {
-    #[ORM\Column(length: 255,name: 'auteur')]
+    #[ORM\Column(length: 255, name: 'auteur')]
     private ?string $auteur = null;
 
+    #[Assert\Isbn(message: 'invalid ISBN ')]
+    #[Assert\NotBlank(message: 'ISBN is required')]
     #[ORM\Column(length: 255, name: 'isbn')]
     private ?string $ISBN = null;
 
-    #[Assert\PositiveOrZero]
+    #[Assert\PositiveOrZero(message: 'nbPages must be a positive number or 0')]
+    #[Assert\NotBlank(message: 'nbPages is required')]
     #[ORM\Column(name: 'nb_pages')]
     private ?int $nbPages = null;
 

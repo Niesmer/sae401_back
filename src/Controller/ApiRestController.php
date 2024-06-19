@@ -107,7 +107,7 @@ class ApiRestController extends AbstractController
 						$errors = $form->getErrors();
 						$response = new Response();
 						$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY); // 422 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-						$response->setContent(json_encode(array('message' => 'Invalid input', 'errors' => 'Constraint violation')));
+						$response->setContent(json_encode(array('errpr' => 'Unprocessable entity')));
 						$response->headers->set('Content-Type', 'application/json');
 						$response->headers->set('Access-Control-Allow-Origin', '*');
 						$response->headers->set('Access-Control-Allow-Headers', '*');
@@ -127,20 +127,22 @@ class ApiRestController extends AbstractController
 			}
 			if ($article["article_type"] == "livre") {
 				$entity = new Livre();
+				//remove article type from the array
+				unset($article["article_type"]);
 				$formBuilder = $this->createFormBuilder($entity, array('csrf_protection' => false));
 				$formBuilder->add("id", TextType::class);
 				$formBuilder->add("titre", TextType::class);
-				$formBuilder->add("auteur", TextType::class);
+				$formBuilder->add("auteur", TextType::class, ['empty_data' => '']);
 				$formBuilder->add("prix", NumberType::class);
 				$formBuilder->add("disponibilite", IntegerType::class);
-				$formBuilder->add("image", TextType::class);
-				$formBuilder->add("ISBN", TextType::class, ['required' => true]);
+				$formBuilder->add("image", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("ISBN", TextType::class, ['empty_data' => '']);
 				$formBuilder->add("nbPages", IntegerType::class);
 				$formBuilder->add("dateDeParution", TextType::class);
 				// Generate form
 				$form = $formBuilder->getForm();
 				$form->submit($article);
-				if ($form->isSubmitted()) {
+				if ($form->isSubmitted() && $form->isValid()) {
 					try {
 						$entity = $form->getData();
 						$id = hexdec(uniqid()); // $id must be of type int
@@ -163,14 +165,14 @@ class ApiRestController extends AbstractController
 						$errors = $form->getErrors();
 						$response = new Response();
 						$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY); // 422 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-						$response->setContent(json_encode(array('message' => 'Invalid input', 'errors' => 'Constraint violation')));
+						$response->setContent(json_encode(array('error form' => $errors->__toString(), 'error e' => $e->getMessage())));
 						$response->headers->set('Content-Type', 'application/json');
 						$response->headers->set('Access-Control-Allow-Origin', '*');
 						$response->headers->set('Access-Control-Allow-Headers', '*');
 						return $response;
 					}
 				} else {
-					$errors = $form->getErrors();
+					$errors = $form->getErrors(true);
 					$response = new Response();
 					$response->setStatusCode(Response::HTTP_BAD_REQUEST); // 400 https://github.com/symfony/http-foundation/blob/5.4/Response.php
 					$response->setContent(json_encode(array('message' => 'Invalid input', 'errors' => $errors->__toString())));
@@ -208,7 +210,7 @@ class ApiRestController extends AbstractController
 		} else {
 			$response = new Response();
 			$response->setStatusCode(Response::HTTP_NOT_FOUND); // 404 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-			$response->setContent(json_encode(array('message' => 'Resource not found: No article found for id ' . $id)));
+			$response->setContent(json_encode(array('error' => 'Resource not found: No article found for id ' . $id)));
 			$response->headers->set('Content-Type', 'application/json');
 			$response->headers->set('Access-Control-Allow-Origin', '*');
 			return $response;
@@ -226,24 +228,22 @@ class ApiRestController extends AbstractController
 			$this->entityManager->remove($articleObj);
 			$this->entityManager->flush();
 			$response = new Response();
-			$response->setStatusCode(Response::HTTP_NO_CONTENT); // 204 https://github.com/symfony/http-foundation/blob/5.4/Response.php
+			$response->setStatusCode(Response::HTTP_OK); // 200 https://github.com/symfony/http-foundation/blob/5.4/Response.php
 			$response->headers->set('Content-Type', 'application/json');
 			$response->headers->set('Access-Control-Allow-Origin', '*');
+			$response->setContent(json_encode(array('message' => 'Resource deleted: Article with id ' . $id)));
 			return $response;
 		} else {
 			$response = new Response();
-			return $response;
-
-			$response = new Response();
 			$response->setStatusCode(Response::HTTP_NOT_FOUND); // 404 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-			$response->setContent(json_encode(array('message' => 'Resource not found: No article found for id ' . $id)));
+			$response->setContent(json_encode(array('error' => 'Resource not found: No article found for id ' . $id)));
 			$response->headers->set('Content-Type', 'application/json');
 			$response->headers->set('Access-Control-Allow-Origin', '*');
 			return $response;
 		}
 	}
 
-	#[Route('/wp-json/wc/v3/products/{id}', name: 'replace-a-product', methods: ['PUT','PATCH'])]
+	#[Route('/wp-json/wc/v3/products/{id}', name: 'replace-a-product', methods: ['PUT', 'PATCH'])]
 	public function replaceAProduct(string $id, Request $request): Response
 	{
 		$data = json_decode($request->getContent(), true);
@@ -266,6 +266,21 @@ class ApiRestController extends AbstractController
 				$form->submit(
 					$data
 				);
+				$extraFieldsErrors = [];
+				foreach ($data as $key => $value) {
+					if (!$form->has($key)) {
+						$extraFieldsErrors[] = $key;
+					}
+				}
+
+				if (!empty($extraFieldsErrors)) {
+					$response = new Response();
+					$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY); // 422
+					$response->setContent(json_encode(array('error' => 'Extra fields found: ' . implode(", ", $extraFieldsErrors))));
+					$response->headers->set('Content-Type', 'application/json');
+					$response->headers->set('Access-Control-Allow-Origin', '*');
+					return $response;
+				}
 				if ($form->isSubmitted() && $form->isValid()) {
 					$article = $form->getData();
 					$entity = $this->entityManager->getRepository(Musique::class)->find($id);
@@ -286,7 +301,7 @@ class ApiRestController extends AbstractController
 					$errors = $form->getErrors(true);
 					$response = new Response;
 					$response->setStatusCode(Response::HTTP_BAD_REQUEST);//400
-					$response->setContent(json_encode(array('message' => 'Invalid input', 'errors' => $errors->1())));
+					$response->setContent(json_encode(array('error' => 'Invalid input : ' . $errors->__toString())));
 					$response->headers->set('Content-Type', 'application/json');
 					$response->headers->set('Access-Control-Allow-Origin', '*');
 					return $response;
@@ -304,12 +319,24 @@ class ApiRestController extends AbstractController
 				$formBuilder->add("nbPages", IntegerType::class, ['empty_data' => 0]);
 				$formBuilder->add("dateDeParution", TextType::class, ['empty_data' => '']);
 				$form = $formBuilder->getForm();
-				$updatedArticleData = array_merge($article, array_filter($data, function ($value) {
-					return $value !== null;
-				}));
 				$form->submit(
-					$updatedArticleData
+					$data
 				);
+				$extraFieldsErrors = [];
+				foreach ($data as $key => $value) {
+					if (!$form->has($key)) {
+						$extraFieldsErrors[] = $key;
+					}
+				}
+
+				if (!empty($extraFieldsErrors)) {
+					$response = new Response();
+					$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY); // 422
+					$response->setContent(json_encode(array('error' => 'Extra fields found: ' . implode(", ", $extraFieldsErrors))));
+					$response->headers->set('Content-Type', 'application/json');
+					$response->headers->set('Access-Control-Allow-Origin', '*');
+					return $response;
+				}
 				if ($form->isSubmitted()) {
 					$article = $form->getData();
 					$entity = $this->entityManager->getRepository(Livre::class)->find($id);
@@ -332,7 +359,7 @@ class ApiRestController extends AbstractController
 			} else {
 				$response = new Response;
 				$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);//422
-				$response->setContent(json_encode(array('message' => 'Entity not processable' . $article["article_type"])));
+				$response->setContent(json_encode(array('error' => 'Entity not processable' . $article["article_type"])));
 				$response->headers->set('Content-Type', 'application/json');
 				$response->headers->set('Access-Control-Allow-Origin', '*');
 				return $response;
@@ -340,7 +367,7 @@ class ApiRestController extends AbstractController
 		} else {
 			$response = new Response();
 			$response->setStatusCode(Response::HTTP_NOT_FOUND); // 404
-			$response->setContent(json_encode(array('message' => 'Resource not found: No article found for id ' . $id)));
+			$response->setContent(json_encode(array('error' => 'Resource not found: No article found for id ' . $id)));
 			$response->headers->set('Content-Type', 'application/json');
 			$response->headers->set('Access-Control-Allow-Origin', '*');
 			return $response;
