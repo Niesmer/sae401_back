@@ -113,7 +113,7 @@ class AppFixtures extends Fixture
 			$entityLivre->setAuteur("J.R.R. TOLKIEN");
 			$entityLivre->setISBN("2075134049");
 			$entityLivre->setNbPages(736);
-			$entityLivre->setDateDeParution("03/10/19");
+			$entityLivre->setDateDeParution("2019-10-03");
 			$entityLivre->setPrix("8.90");
 			$entityLivre->setDisponibilite(1);
 			$entityLivre->setImage("/images/51O0yBHs+OL._SL140_.jpg");
@@ -124,7 +124,7 @@ class AppFixtures extends Fixture
 			$entityLivre->setAuteur("Henning Mankell");
 			$entityLivre->setISBN("275784797X");
 			$entityLivre->setNbPages(400);
-			$entityLivre->setDateDeParution("09/10/14");
+			$entityLivre->setDateDeParution("2014-10-09");
 			$entityLivre->setPrix("6.80");
 			$entityLivre->setDisponibilite(1);
 			$entityLivre->setImage("/images/71uwoF4hncL._SL140_.jpg");
@@ -135,7 +135,7 @@ class AppFixtures extends Fixture
 			$entityLivre->setAuteur("Stephen King");
 			$entityLivre->setISBN("2212110685");
 			$entityLivre->setNbPages(840);
-			$entityLivre->setDateDeParution("06/03/13");
+			$entityLivre->setDateDeParution("2013-03-06");
 			$entityLivre->setPrix("8.90");
 			$entityLivre->setDisponibilite(1);
 			$entityLivre->setImage("/images/719FffADQAL._SL140_.jpg");

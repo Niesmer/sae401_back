@@ -16,13 +16,16 @@ class Article
     #[ORM\Column]
     private ?int $id = null;
 
+    #[Assert\NotBlank (message: 'Le titre est obligatoire')]
     #[ORM\Column(length: 255, name: 'titre')]
     private ?string $titre = null;
 
-    #[Assert\PositiveOrZero]
+    #[Assert\NotBlank (message: 'Le prix est obligatoire')]
+    #[Assert\PositiveOrZero (message: 'Le prix doit être un nombre positif ou 0')]
     #[ORM\Column(name: 'prix')]
     private ?float $prix = null;
 
+    #[Assert\NotBlank (message: 'La disponibilité est obligatoire')]
     #[Assert\PositiveOrZero (message: 'La disponibilité doit être un nombre positif ou 0')]
     #[ORM\Column(name: 'disponibilite')]
     private ?int $disponibilite = null;

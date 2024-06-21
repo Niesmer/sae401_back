@@ -80,10 +80,9 @@ class ApiRestController extends AbstractController
 				$formBuilder->add("disponibilite", IntegerType::class);
 				$formBuilder->add("image", TextType::class);
 				$formBuilder->add("dateDeParution", TextType::class);
-				// Generate form
 				$form = $formBuilder->getForm();
 				$form->submit($article);
-				if ($form->isSubmitted()) {
+				if ($form->isSubmitted() && $form->isValid()) {
 					try {
 						$entity = $form->getData();
 						$id = hexdec(uniqid()); // $id must be of type int
@@ -114,11 +113,14 @@ class ApiRestController extends AbstractController
 						return $response;
 					}
 				} else {
-					$errors = $form->getErrors();
+					$errors = $form->getErrors(true);
 					$response = new Response();
 					$response->setStatusCode(Response::HTTP_BAD_REQUEST); // 400 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-					$response->setContent(json_encode(array('message' => 'Invalid input', 'errors' => $errors->__toString())));
-					//$response->setContent(json_encode(array('message' => 'Invalid input'))) ;
+					$errorArray = array();
+					for ($i = 0; $i < $errors->count(); $i++) {
+						$errorArray += array($errors->offsetGet($i)->getOrigin()->getName() => $errors->offsetGet($i)->getMessage());
+					}
+					$response->setContent(json_encode(array('message' => $errorArray)));
 					$response->headers->set('Content-Type', 'application/json');
 					$response->headers->set('Access-Control-Allow-Origin', '*');
 					$response->headers->set('Access-Control-Allow-Headers', '*');
@@ -132,11 +134,11 @@ class ApiRestController extends AbstractController
 				$formBuilder = $this->createFormBuilder($entity, array('csrf_protection' => false));
 				$formBuilder->add("id", TextType::class);
 				$formBuilder->add("titre", TextType::class);
-				$formBuilder->add("auteur", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("auteur", TextType::class);
 				$formBuilder->add("prix", NumberType::class);
 				$formBuilder->add("disponibilite", IntegerType::class);
 				$formBuilder->add("image", TextType::class, ['empty_data' => '']);
-				$formBuilder->add("ISBN", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("ISBN", TextType::class);
 				$formBuilder->add("nbPages", IntegerType::class);
 				$formBuilder->add("dateDeParution", TextType::class);
 				// Generate form
@@ -175,17 +177,29 @@ class ApiRestController extends AbstractController
 					$errors = $form->getErrors(true);
 					$response = new Response();
 					$response->setStatusCode(Response::HTTP_BAD_REQUEST); // 400 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-					$response->setContent(json_encode(array('message' => 'Invalid input', 'errors' => $errors->__toString())));
+					$errorArray = array();
+					for ($i = 0; $i < $errors->count(); $i++) {
+						$errorArray += array($errors->offsetGet($i)->getOrigin()->getName() => $errors->offsetGet($i)->getMessage());
+					}
+					$response->setContent(json_encode(array('message' => $errorArray)));
 					$response->headers->set('Content-Type', 'application/json');
 					$response->headers->set('Access-Control-Allow-Origin', '*');
 					$response->headers->set('Access-Control-Allow-Headers', '*');
 					return $response;
 				}
+			} else {
+				$response = new Response();
+				$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY); // 422
+				$response->setContent(json_encode(array('message' => 'Entité non traitable : le type d\'article ' . $article["article_type"] . ' doit être soit musique soit livre')));
+				$response->headers->set('Content-Type', 'application/json');
+				$response->headers->set('Access-Control-Allow-Origin', '*');
+				$response->headers->set('Access-Control-Allow-Headers', '*');
+				return $response;
 			}
 		} else {
 			$response = new Response();
 			$response->setStatusCode(Response::HTTP_BAD_REQUEST); // 400 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-			$response->setContent(json_encode(array('message' => 'Invalid input: No article_type found')));
+			$response->setContent(json_encode(array('message' => 'Entrée invalide : Aucun article_type trouvé')));
 			$response->headers->set('Content-Type', 'application/json');
 			$response->headers->set('Access-Control-Allow-Origin', '*');
 			$response->headers->set('Access-Control-Allow-Headers', '*');
