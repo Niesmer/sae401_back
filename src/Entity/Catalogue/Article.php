@@ -30,7 +30,7 @@ class Article
     #[ORM\Column(name: 'disponibilite')]
     private ?int $disponibilite = null;
 	
-    #[ORM\Column(length: 255, name: 'image')]
+    #[ORM\Column(length: 255, name: 'image', nullable: true)]
     private ?string $image = null;
 
     public function getId(): ?int

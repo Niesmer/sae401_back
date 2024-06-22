@@ -8,7 +8,6 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 class Livre extends Article
 {
-    #[Assert\NotBlank(message: 'Auteur est requis')]
     #[ORM\Column(length: 255, name: 'auteur')]
     private ?string $auteur = null;
 

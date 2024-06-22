@@ -71,6 +71,7 @@ class ApiRestController extends AbstractController
 		$article = json_decode($request->getContent(), true);
 		if (isset($article["article_type"])) {
 			if ($article["article_type"] == "musique") {
+				unset($article["article_type"]);
 				$entity = new Musique();
 				$formBuilder = $this->createFormBuilder($entity, array('csrf_protection' => false));
 				$formBuilder->add("id", TextType::class);
@@ -94,7 +95,7 @@ class ApiRestController extends AbstractController
 						$article = $query->getArrayResult();
 						$response = new Response();
 						$response->setStatusCode(Response::HTTP_CREATED); // 201 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-						$response->setContent(json_encode($article));
+						$response->setContent(json_encode($article[0]));
 						$response->headers->set('Content-Type', 'application/json');
 						$response->headers->set('Content-Location', '/wp-json/wc/v3/products/' . $id);
 						$response->headers->set('Access-Control-Allow-Origin', '*');
@@ -156,7 +157,7 @@ class ApiRestController extends AbstractController
 						$article = $query->getArrayResult();
 						$response = new Response();
 						$response->setStatusCode(Response::HTTP_CREATED); // 201 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-						$response->setContent(json_encode($article));
+						$response->setContent(json_encode($article[0]));
 						$response->headers->set('Content-Type', 'application/json');
 						$response->headers->set('Content-Location', '/wp-json/wc/v3/products/' . $id);
 						$response->headers->set('Access-Control-Allow-Origin', '*');
@@ -177,6 +178,60 @@ class ApiRestController extends AbstractController
 					$errors = $form->getErrors(true);
 					$response = new Response();
 					$response->setStatusCode(Response::HTTP_BAD_REQUEST); // 400 https://github.com/symfony/http-foundation/blob/5.4/Response.php
+					$errorArray = array();
+					for ($i = 0; $i < $errors->count(); $i++) {
+						$errorArray += array($errors->offsetGet($i)->getOrigin()->getName() => $errors->offsetGet($i)->getMessage());
+					}
+					$response->setContent(json_encode(array('message' => $errorArray)));
+					$response->headers->set('Content-Type', 'application/json');
+					$response->headers->set('Access-Control-Allow-Origin', '*');
+					$response->headers->set('Access-Control-Allow-Headers', '*');
+					return $response;
+				}
+			} elseif ($article["article_type"] == "article") {
+				$entity = new Article();
+				unset($article["article_type"]);
+				$formBuilder = $this->createFormBuilder($entity, array('csrf_protection' => false));
+				$formBuilder->add("id", TextType::class);
+				$formBuilder->add("titre", TextType::class);
+				$formBuilder->add("prix", NumberType::class);
+				$formBuilder->add("disponibilite", IntegerType::class);
+				$formBuilder->add("image", TextType::class);
+				$form = $formBuilder->getForm();
+				$form->submit($article);
+				if ($form->isSubmitted() && $form->isValid()) {
+					try {
+						$entity = $form->getData();
+						$id = hexdec(uniqid());
+						$entity->setId($id);
+						$this->entityManager->persist($entity);
+						$this->entityManager->flush();
+						$query = $this->entityManager->createQuery("SELECT a FROM App\Entity\Catalogue\Article a where a.id like :id");
+						$query->setParameter("id", $id);
+						$article = $query->getArrayResult();
+						$response = new Response();
+						$response->setStatusCode(Response::HTTP_CREATED); // 201
+						$response->setContent(json_encode($article[0]));
+						$response->headers->set('Content-Type', 'application/json');
+						$response->headers->set('Content-Location', '/wp-json/wc/v3/products/' . $id);
+						$response->headers->set('Access-Control-Allow-Origin', '*');
+						$response->headers->set('Access-Control-Allow-Headers', '*');
+						$response->headers->set('Access-Control-Expose-Headers', 'Content-Location');
+						return $response;
+					} catch (ConstraintViolationException $e) {
+						$errors = $form->getErrors();
+						$response = new Response();
+						$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY); // 422
+						$response->setContent(json_encode(array('error form' => $errors->__toString(), 'error e' => $e->getMessage())));
+						$response->headers->set('Content-Type', 'application/json');
+						$response->headers->set('Access-Control-Allow-Origin', '*');
+						$response->headers->set('Access-Control-Allow-Headers', '*');
+						return $response;
+					}
+				} else {
+					$errors = $form->getErrors(true);
+					$response = new Response();
+					$response->setStatusCode(Response::HTTP_BAD_REQUEST); // 400
 					$errorArray = array();
 					for ($i = 0; $i < $errors->count(); $i++) {
 						$errorArray += array($errors->offsetGet($i)->getOrigin()->getName() => $errors->offsetGet($i)->getMessage());
@@ -217,7 +272,7 @@ class ApiRestController extends AbstractController
 		if (count($article) !== 0) {
 			$response = new Response();
 			$response->setStatusCode(Response::HTTP_OK); // 200 https://github.com/symfony/http-foundation/blob/5.4/Response.php
-			$response->setContent(json_encode($article));
+			$response->setContent(json_encode($article[0]));
 			$response->headers->set('Content-Type', 'application/json');
 			$response->headers->set('Access-Control-Allow-Origin', '*');
 			return $response;
@@ -306,36 +361,40 @@ class ApiRestController extends AbstractController
 					$article = $query->getArrayResult();
 					$response = new Response();
 					$response->setStatusCode(Response::HTTP_OK); // 200
-					$response->setContent(json_encode($article));
+					$response->setContent(json_encode($article[0]));
 					$response->headers->set('Content-Type', 'application/json');
 					$response->headers->set('Content-Location', '/wp-json/wc/v3/products/' . $id);
 					$response->headers->set('Access-Control-Allow-Origin', '*');
 					return $response;
 				} else {
 					$errors = $form->getErrors(true);
-					$response = new Response;
-					$response->setStatusCode(Response::HTTP_BAD_REQUEST);//400
-					$response->setContent(json_encode(array('error' => 'Invalid input : ' . $errors->__toString())));
+					$response = new Response();
+					$response->setStatusCode(Response::HTTP_BAD_REQUEST); // 400 https://github.com/symfony/http-foundation/blob/5.4/Response.php
+					$errorArray = array();
+					for ($i = 0; $i < $errors->count(); $i++) {
+						$errorArray += array($errors->offsetGet($i)->getOrigin()->getName() => $errors->offsetGet($i)->getMessage());
+					}
+					$response->setContent(json_encode(array('message' => $errorArray)));
 					$response->headers->set('Content-Type', 'application/json');
 					$response->headers->set('Access-Control-Allow-Origin', '*');
+					$response->headers->set('Access-Control-Allow-Headers', '*');
 					return $response;
 				}
 			} elseif ($article["article_type"] == "livre") {
-				$formBuilder = $this->createFormBuilder($article, array('csrf_protection' => false));
+				unset($data["article_type"]);
+				$entity = $this->entityManager->getRepository(Livre::class)->find($id);
+				$formBuilder = $this->createFormBuilder($entity, array('csrf_protection' => false));
 				$formBuilder->add("id", IntegerType::class);
-				$formBuilder->add("article_type", TextType::class, ['empty_data' => '']);
 				$formBuilder->add("titre", TextType::class, ['empty_data' => '']);
 				$formBuilder->add("auteur", TextType::class, ['empty_data' => '']);
-				$formBuilder->add("prix", NumberType::class, ['empty_data' => 0]);
-				$formBuilder->add("disponibilite", IntegerType::class, ['empty_data' => 0]);
+				$formBuilder->add("prix", NumberType::class, ['empty_data' => 0, 'invalid_message' => 'Le prix est requis']);
+				$formBuilder->add("disponibilite", NumberType::class, ['empty_data' => 0, 'invalid_message' => 'La disponibilité est requise']);
 				$formBuilder->add("image", TextType::class, ['empty_data' => '']);
-				$formBuilder->add("ISBN", TextType::class, ['empty_data' => '']);
-				$formBuilder->add("nbPages", IntegerType::class, ['empty_data' => 0]);
+				$formBuilder->add("ISBN", TextType::class, ['empty_data' => '', 'invalid_message' => 'L\'ISBN est requis']);
+				$formBuilder->add("nbPages", NumberType::class, ['empty_data' => 0, 'invalid_message' => 'Le nombre de page est requis']);
 				$formBuilder->add("dateDeParution", TextType::class, ['empty_data' => '']);
 				$form = $formBuilder->getForm();
-				$form->submit(
-					$data
-				);
+				$form->submit($data);
 				$extraFieldsErrors = [];
 				foreach ($data as $key => $value) {
 					if (!$form->has($key)) {
@@ -351,11 +410,67 @@ class ApiRestController extends AbstractController
 					$response->headers->set('Access-Control-Allow-Origin', '*');
 					return $response;
 				}
-				if ($form->isSubmitted()) {
+				if ($form->isSubmitted() && $form->isValid()) {
 					$article = $form->getData();
 					$entity = $this->entityManager->getRepository(Livre::class)->find($id);
-					;
 					$this->serializer->deserialize(json_encode($article), Livre::class, 'json', [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $entity]);
+					$this->entityManager->persist($entity);
+					$this->entityManager->flush();
+
+					$query = $this->entityManager->createQuery("SELECT a FROM App\Entity\Catalogue\Article a where a.id like :id");
+					$query->setParameter("id", $id);
+					$article = $query->getArrayResult();
+					$response = new Response();
+					$response->setStatusCode(Response::HTTP_OK); // 200
+					$response->setContent(json_encode($article[0]));
+					$response->headers->set('Content-Type', 'application/json');
+					$response->headers->set('Content-Location', '/wp-json/wc/v3/products/' . $id);
+					$response->headers->set('Access-Control-Allow-Origin', '*');
+					return $response;
+				} else {
+					$errors = $form->getErrors(true);
+					$response = new Response();
+					$response->setStatusCode(Response::HTTP_BAD_REQUEST); // 400 https://github.com/symfony/http-foundation/blob/5.4/Response.php
+					$errorArray = array();
+					for ($i = 0; $i < $errors->count(); $i++) {
+						$errorArray += array($errors->offsetGet($i)->getOrigin()->getName() => $errors->offsetGet($i)->getMessage());
+					}
+					$response->setContent(json_encode(array('message' => $errorArray)));
+					$response->headers->set('Content-Type', 'application/json');
+					$response->headers->set('Access-Control-Allow-Origin', '*');
+					$response->headers->set('Access-Control-Allow-Headers', '*');
+					return $response;
+				}
+			} elseif ($article["article_type"] == "article") {
+				unset($data["article_type"]);
+				$entity = $this->entityManager->getRepository(Article::class)->find($id);
+				$formBuilder = $this->createFormBuilder($entity, array('csrf_protection' => false));
+				$formBuilder->add("id", IntegerType::class);
+				$formBuilder->add("titre", TextType::class, ['empty_data' => '']);
+				$formBuilder->add("prix", NumberType::class, ['empty_data' => 0, 'invalid_message' => 'Le prix est requis']);
+				$formBuilder->add("disponibilite", NumberType::class, ['empty_data' => 0, 'invalid_message' => 'La disponibilité est requise']);
+				$formBuilder->add("image", TextType::class, ['empty_data' => '']);
+				$form = $formBuilder->getForm();
+				$form->submit($data);
+				$extraFieldsErrors = [];
+				foreach ($data as $key => $value) {
+					if (!$form->has($key)) {
+						$extraFieldsErrors[] = $key;
+					}
+				}
+
+				if (!empty($extraFieldsErrors)) {
+					$response = new Response();
+					$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY); // 422
+					$response->setContent(json_encode(array('error' => 'Extra fields found: ' . implode(", ", $extraFieldsErrors))));
+					$response->headers->set('Content-Type', 'application/json');
+					$response->headers->set('Access-Control-Allow-Origin', '*');
+					return $response;
+				}
+				if ($form->isSubmitted() && $form->isValid()) {
+					$article = $form->getData();
+					$entity = $this->entityManager->getRepository(Article::class)->find($id);
+					$this->serializer->deserialize(json_encode($article), Article::class, 'json', [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $entity]);
 					$this->entityManager->persist($entity);
 					$this->entityManager->flush();
 					$query = $this->entityManager->createQuery("SELECT a FROM App\Entity\Catalogue\Article a where a.id like :id");
@@ -363,20 +478,19 @@ class ApiRestController extends AbstractController
 					$article = $query->getArrayResult();
 					$response = new Response();
 					$response->setStatusCode(Response::HTTP_OK); // 200
-					$response->setContent(json_encode($article));
+					$response->setContent(json_encode($article[0]));
 					$response->headers->set('Content-Type', 'application/json');
 					$response->headers->set('Content-Location', '/wp-json/wc/v3/products/' . $id);
 					$response->headers->set('Access-Control-Allow-Origin', '*');
 					return $response;
 				} else {
+					$response = new Response;
+					$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY); //422
+					$response->setContent(json_encode(array('error' => 'Entity not processable ' . $article["article_type"])));
+					$response->headers->set('Content-Type', 'application/json');
+					$response->headers->set('Access-Control-Allow-Origin', '*');
+					return $response;
 				}
-			} else {
-				$response = new Response;
-				$response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);//422
-				$response->setContent(json_encode(array('error' => 'Entity not processable' . $article["article_type"])));
-				$response->headers->set('Content-Type', 'application/json');
-				$response->headers->set('Access-Control-Allow-Origin', '*');
-				return $response;
 			}
 		} else {
 			$response = new Response();
