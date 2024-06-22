@@ -21,7 +21,7 @@ class Livre extends Article
     #[ORM\Column(name: 'nb_pages')]
     private ?int $nbPages = null;
 
-    #[Assert\NotBlank(message: 'Date de parution est requise')]
+    
     #[ORM\Column(length: 255, name: 'date_de_parution')]
     private ?string $dateDeParution = null;
 
