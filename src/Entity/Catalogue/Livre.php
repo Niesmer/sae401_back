@@ -11,12 +11,7 @@ class Livre extends Article
     #[ORM\Column(length: 255, name: 'auteur')]
     private ?string $auteur = null;
 
-    #[Assert\Length(
-        min: 10,
-        max: 13,
-        minMessage: "L'ISBN doit faire au minimum 10 caractères",
-        maxMessage: "L'ISBN doit faire au maximum 13 caractères",
-    )]
+    #[Assert\Isbn(message: 'ISBN invalide')]
     #[Assert\NotBlank(message: 'ISBN est requis')]
     #[ORM\Column(length: 255, name: 'isbn')]
     private ?string $ISBN = null;
